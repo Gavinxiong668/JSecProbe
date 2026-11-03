@@ -1063,16 +1063,48 @@ async function loadScreenshotDataUrl(row: any, filePath: string): Promise<string
     const res = await window.api.screenshot.getBase64({ filePath });
     if (res.success && res.data && res.data.base64) {
       const dataUrl = `data:${res.data.mimeType || 'image/png'};base64,${res.data.base64}`;
-      row.screenshotUrls = Object.assign({}, row.screenshotUrls, { [filePath]: dataUrl });
-      tableRows.value = [...tableRows.value];
+      // 创建新的行对象并替换 tableRows 中的原对象，确保响应式更新正确触发
+      const rowIndex = tableRows.value.findIndex(r => r === row || r.itemId === row.itemId);
+      if (rowIndex >= 0) {
+        tableRows.value[rowIndex] = {
+          ...row,
+          screenshotUrls: {
+            ...(row.screenshotUrls || {}),
+            [filePath]: dataUrl,
+          },
+        };
+        tableRows.value = [...tableRows.value];
+      }
       return dataUrl;
     } else {
-      row.screenshotUrls = Object.assign({}, row.screenshotUrls, { [filePath]: 'error' });
+      // 创建标记为错误的行对象
+      const rowIndex = tableRows.value.findIndex(r => r === row || r.itemId === row.itemId);
+      if (rowIndex >= 0) {
+        tableRows.value[rowIndex] = {
+          ...row,
+          screenshotUrls: {
+            ...(row.screenshotUrls || {}),
+            [filePath]: 'error',
+          },
+        };
+        tableRows.value = [...tableRows.value];
+      }
       return 'error';
     }
   } catch (error) {
     console.error('[loadScreenshotDataUrl] 读取截图失败:', filePath, error);
-    row.screenshotUrls = Object.assign({}, row.screenshotUrls, { [filePath]: 'error' });
+    // 创建标记为错误的行对象
+    const rowIndex = tableRows.value.findIndex(r => r === row || r.itemId === row.itemId);
+    if (rowIndex >= 0) {
+      tableRows.value[rowIndex] = {
+        ...row,
+        screenshotUrls: {
+          ...(row.screenshotUrls || {}),
+          [filePath]: 'error',
+        },
+      };
+      tableRows.value = [...tableRows.value];
+    }
     return null;
   }
 }

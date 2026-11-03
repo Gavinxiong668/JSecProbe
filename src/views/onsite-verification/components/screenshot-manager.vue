@@ -114,15 +114,38 @@ async function loadScreenshotDataUrl(filePath: string) {
     const res = await window.api.screenshot.getBase64({ filePath });
     if (res.success && res.data && res.data.base64) {
       const dataUrl = `data:${res.data.mimeType || 'image/png'};base64,${res.data.base64}`;
-      props.row.screenshotUrls = Object.assign({}, props.row.screenshotUrls, { [filePath]: dataUrl });
-      emit('update:row', { ...props.row });
+      // 创建新的行对象，避免直接修改 props（遵循 Vue 单向数据流原则）
+      const newRow = {
+        ...props.row,
+        screenshotUrls: {
+          ...(props.row.screenshotUrls || {}),
+          [filePath]: dataUrl,
+        },
+      };
+      emit('update:row', newRow);
     } else {
       console.warn('[loadScreenshotDataUrl] getBase64 返回空结果:', filePath, 'success:', res.success, 'hasData:', !!res.data, 'error:', res.error?.message);
-      props.row.screenshotUrls = Object.assign({}, props.row.screenshotUrls, { [filePath]: 'error' });
+      // 创建标记为错误的行对象
+      const newRow = {
+        ...props.row,
+        screenshotUrls: {
+          ...(props.row.screenshotUrls || {}),
+          [filePath]: 'error',
+        },
+      };
+      emit('update:row', newRow);
     }
   } catch (error) {
     console.error('[loadScreenshotDataUrl] 读取截图失败:', filePath, error);
-    props.row.screenshotUrls = Object.assign({}, props.row.screenshotUrls, { [filePath]: 'error' });
+    // 创建标记为错误的行对象
+    const newRow = {
+      ...props.row,
+      screenshotUrls: {
+        ...(props.row.screenshotUrls || {}),
+        [filePath]: 'error',
+      },
+    };
+    emit('update:row', newRow);
   } finally {
     screenshotLoadingLocks.delete(filePath);
   }
